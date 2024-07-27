@@ -1,7 +1,7 @@
 //create mini-express app
 const exp = require("express");
 
-require('dotenv').config()
+require("dotenv").config();
 
 const userApp = exp.Router();
 const bcryptjs = require("bcryptjs");
@@ -69,7 +69,7 @@ userApp.post(
       //replace plain password with hashed password in newUser
       newUser.password = hashedpassword;
       //add products property
-      newUser.products=[];
+      newUser.products = [];
       //save user
       await usersCollection.insertOne(newUser);
       //send res
@@ -102,9 +102,13 @@ userApp.post(
       //if passwords are matched
       else {
         //create JWT token
-        let signedToken = jwt.sign({ username: userCred.username }, process.env.SECRET_KEY, {
-          expiresIn: "1h",
-        });
+        let signedToken = jwt.sign(
+          { username: userCred.username },
+          process.env.SECRET_KEY,
+          {
+            expiresIn: "1h",
+          }
+        );
         //send res
         res.send({
           message: "login success",
@@ -119,17 +123,19 @@ userApp.post(
 //route to update user(protected route)
 userApp.put(
   "/user",
-  tokenVerify,
+  //tokenVerify,
   expressAsyncHandler(async (req, res) => {
     //get usersCollection obj
     const usersCollection = req.app.get("usersCollection");
     //get modified user from client
     let modifiedUser = req.body;
+    console.log(modifiedUser);
     //modify by username
     await usersCollection.updateOne(
       { username: modifiedUser.username },
       { $set: { ...modifiedUser } }
     );
+
     res.send({ message: "User modified" });
   })
 );
@@ -141,23 +147,39 @@ userApp.delete(
   expressAsyncHandler((req, res) => {})
 );
 
-
-
-
-
 //add selected product to a specific user cart
-userApp.put('/add-to-cart/:username',expressAsyncHandler(async(req,res)=>{
-  //get usersCollection obj
-  const usersCollection = req.app.get("usersCollection");
-  //get usernbame from url
-  let usernameFromUrl=req.params.username;
-  //get cart obj
-  let productObj=req.body;
-  let result=await usersCollection.updateOne({username:usernameFromUrl},{$push:{products:productObj}})
-  res.send({message:"product added",payload:result})
-}))
+userApp.put(
+  "/add-to-cart/:username",
+  expressAsyncHandler(async (req, res) => {
+    //get usersCollection obj
+    const usersCollection = req.app.get("usersCollection");
+    //get usernbame from url
+    let usernameFromUrl = req.params.username;
+    //get cart obj
+    let productObj = req.body;
+    console.log(productObj);
+    let result = await usersCollection.updateOne(
+      { username: usernameFromUrl },
+      { $push: { products: productObj } }
+    );
+    res.send({ message: "product added", payload: result });
+  })
+);
+
+//get latest cart
+userApp.get(
+  "/cart/:username",
+  expressAsyncHandler(async (req, res) => {
+    //get usersCollection obj
+    const usersCollection = req.app.get("usersCollection");
+    //get username from url
+    let usernameFromUrl = req.params.username;
+    //get cart
+    let user = await usersCollection.findOne({ username: usernameFromUrl });
+    //send res
+    res.send({ message: "cart", payload: user });
+  })
+);
 
 //export userApp
 module.exports = userApp;
-
-
